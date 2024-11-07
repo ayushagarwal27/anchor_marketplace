@@ -5,6 +5,8 @@ declare_id!("ECyPjsZBXBAqqAMEeDPPJEkUHGfxMU54d9LpGm5MRAFy");
 mod state;
 mod instructions;
 
+use instructions::*;
+
 #[program]
 pub mod marketplace {
     use super::*;
