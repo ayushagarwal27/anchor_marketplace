@@ -4,6 +4,7 @@ declare_id!("ECyPjsZBXBAqqAMEeDPPJEkUHGfxMU54d9LpGm5MRAFy");
 
 mod state;
 mod instructions;
+mod errors;
 
 use instructions::*;
 
