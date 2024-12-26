@@ -8,6 +8,7 @@ use crate::state::Marketplace;
 pub struct Initialize<'info> {
     #[account(mut)]
     pub admin: Signer<'info>,
+
     #[account(
         init,
         payer = admin,
@@ -16,11 +17,13 @@ pub struct Initialize<'info> {
         bump,
     )]
     pub marketplace: Account<'info, Marketplace>,
+
     #[account(
         seeds = [b"treasury", marketplace.key().as_ref()],
         bump,
     )]
     pub treasury: SystemAccount<'info>,
+
     #[account(
         init,
         payer = admin,
@@ -30,6 +33,7 @@ pub struct Initialize<'info> {
         mint::authority = marketplace,
     )]
     pub rewards_mint: InterfaceAccount<'info, Mint>,
+    
     pub token_program: Interface<'info, TokenInterface>,
     pub system_program: Program<'info, System>,
 }
