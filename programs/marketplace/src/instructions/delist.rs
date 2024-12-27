@@ -10,31 +10,38 @@ use crate::state::{Listing, Marketplace};
 pub struct Delist<'info> {
     #[account(mut)]
     pub maker: Signer<'info>,
+
     #[account(
       seeds = [b"marketplace", marketplace.name.as_str().as_bytes()],
       bump = marketplace.bump
     )]
     pub marketplace: Account<'info, Marketplace>,
+
     #[account(
       mut,
       close = maker,
       seeds = [marketplace.key().as_ref(), maker_mint.key().as_ref()],
+      has_one = maker,
       bump = listing.bump
     )]
     pub listing: Account<'info, Listing>,
+
     pub maker_mint: InterfaceAccount<'info, Mint>,
-    #[account(
-    mut,
-    associated_token::authority = maker,
-    associated_token::mint = maker_mint,
-    )]
-    pub maker_ata: InterfaceAccount<'info, TokenAccount>,
+
     #[account(
       mut,
-    associated_token::authority = listing,
-    associated_token::mint = maker_mint,
+      associated_token::authority = maker,
+      associated_token::mint = maker_mint,
+    )]
+    pub maker_ata: InterfaceAccount<'info, TokenAccount>,
+
+    #[account(
+      mut,
+      associated_token::authority = listing,
+      associated_token::mint = maker_mint,
     )]
     pub vault: InterfaceAccount<'info, TokenAccount>,
+
     pub system_program: Program<'info, System>,
     pub token_program: Interface<'info, TokenInterface>,
 }
