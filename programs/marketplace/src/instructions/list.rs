@@ -8,25 +8,30 @@ use crate::state::{Listing, Marketplace};
 pub struct List<'info> {
     #[account(mut)]
     pub maker: Signer<'info>,
+
     #[account(
         seeds = [b"marketplace", marketplace.name.as_str().as_bytes()],
         bump = marketplace.bump
     )]
     pub marketplace: Account<'info, Marketplace>,
+
     pub maker_mint: InterfaceAccount<'info, Mint>,
+
     #[account(
         mut,
         associated_token::mint = maker_mint,
         associated_token::authority = maker,
     )]
     pub maker_ata: InterfaceAccount<'info, TokenAccount>,
+
     #[account{
         init,
         payer = maker,
         associated_token::mint = maker_mint,
-        associated_token::authority = maker,
+        associated_token::authority = listing,
         }]
     pub vault: InterfaceAccount<'info, TokenAccount>,
+
     #[account(
         init,
         payer = maker,
@@ -35,6 +40,7 @@ pub struct List<'info> {
         bump
     )]
     pub listing: Account<'info, Listing>,
+
     #[account(
         seeds = [b"metadata", metadata_program.key().as_ref(), maker_mint.key().as_ref()],
         seeds::program = metadata_program.key(),
@@ -43,13 +49,16 @@ pub struct List<'info> {
         constraint = metadata.collection.as_ref().unwrap().verified == true,
     )]
     pub metadata: Account<'info, MetadataAccount>,
+
     #[account(
         seeds = [b"metadata", metadata_program.key().as_ref(), maker_mint.key().as_ref(), b"edition"],
         seeds::program = metadata_program.key(),
         bump,
     )]
     pub master_edition: Account<'info, MasterEditionAccount>,
+
     pub collection_mint: Interface<'info, TokenInterface>,
+
     pub system_program: Program<'info, System>,
     pub metadata_program: Program<'info, Metadata>,
     pub token_program: Interface<'info, TokenInterface>,

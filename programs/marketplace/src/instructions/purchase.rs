@@ -16,37 +16,52 @@ use crate::state::{Listing, Marketplace};
 pub struct Purchase<'info> {
     #[account(mut)]
     pub taker: Signer<'info>,
+
     #[account(mut)]
     pub maker: SystemAccount<'info>,
+
     #[account(
-    init_if_needed,
-    payer = taker,
-    associated_token::authority = taker,
-    associated_token::mint = maker_mint,
+        init_if_needed,
+        payer = taker,
+        associated_token::mint = maker_mint,
+        associated_token::authority = taker,
     )]
     pub taker_ata: InterfaceAccount<'info, TokenAccount>,
+
     #[account(
-    mut,
-    associated_token::authority = listing,
-    associated_token::mint = maker_mint,
+        mut,
+        associated_token::authority = listing,
+        associated_token::mint = maker_mint,
     )]
     pub vault: InterfaceAccount<'info, TokenAccount>,
+
     pub maker_mint: InterfaceAccount<'info, Mint>,
+
     #[account(
-    mut,
-    close = maker,
-    seeds = [marketplace.key().as_ref(), maker_mint.key().as_ref()],
-    bump = listing.bump
+        mut,
+        close = maker,
+        seeds = [marketplace.key().as_ref(), maker_mint.key().as_ref()],
+        bump = listing.bump
     )]
     pub listing: Account<'info, Listing>,
+
     #[account(
-    seeds = [b"treasury", marketplace.key().as_ref()],
-    bump = marketplace.treasury_bump
+        seeds = [b"treasury", marketplace.key().as_ref()],
+        bump = marketplace.treasury_bump
     )]
     pub treasury: SystemAccount<'info>,
+
     #[account(
-    seeds = [b"marketplace", marketplace.name.as_str().as_bytes()],
-    bump = marketplace.bump
+        mut,
+        seeds = [b"rewards", marketplace.key().as_ref()],
+        bump = marketplace.rewards_bump,
+        mint::authority = marketplace,
+    )]
+    pub rewards_mint: InterfaceAccount<'info, Mint>,
+
+    #[account(
+        seeds = [b"marketplace", marketplace.name.as_str().as_bytes()],
+        bump = marketplace.bump
     )]
     pub marketplace: Account<'info, Marketplace>,
 
@@ -57,6 +72,7 @@ pub struct Purchase<'info> {
 
 impl<'info> Purchase<'info> {
     pub fn send_sol(&mut self) -> Result<()> {
+        // Send sol from taker to maker deducting marketplace fee
         let cpi_program = self.system_program.to_account_info();
 
         let cpi_accounts = Transfer {
@@ -66,7 +82,8 @@ impl<'info> Purchase<'info> {
 
         let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
 
-        let amount = self
+        // calculate fee
+        let fee = self
             .listing
             .price
             .checked_mul(self.marketplace.fee as u64)
@@ -74,8 +91,9 @@ impl<'info> Purchase<'info> {
             .checked_div(10000)
             .unwrap();
 
-        transfer(cpi_ctx, self.listing.price - amount)?;
+        transfer(cpi_ctx, self.listing.price - fee)?;
 
+        // Transfer fee from taker to marketplace treasury
         let cpi_program = self.system_program.to_account_info();
 
         let cpi_accounts = Transfer {
@@ -85,7 +103,7 @@ impl<'info> Purchase<'info> {
 
         let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
 
-        transfer(cpi_ctx, amount)?;
+        transfer(cpi_ctx, fee)?;
 
         Ok(())
     }

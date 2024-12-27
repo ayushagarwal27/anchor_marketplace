@@ -1,6 +1,7 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token_interface::{
-    transfer_checked, Mint, TokenAccount, TokenInterface, TransferChecked,
+use anchor_spl::{
+    token::{close_account, CloseAccount},
+    token_interface::{transfer_checked, Mint, TokenAccount, TokenInterface, TransferChecked},
 };
 
 use crate::state::{Listing, Marketplace};
@@ -60,6 +61,30 @@ impl<'info> Delist<'info> {
         let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, signer_seeds);
 
         transfer_checked(cpi_ctx, 1, self.maker_mint.decimals)?;
+
+        Ok(())
+    }
+
+    pub fn close_mint_vault(&mut self) -> Result<()> {
+        let cpi_program = self.token_program.to_account_info();
+
+        let cpi_accounts = CloseAccount {
+            account: self.vault.to_account_info(),
+            destination: self.maker.to_account_info(),
+            authority: self.listing.to_account_info(),
+        };
+
+        let seeds = &[
+            self.marketplace.to_account_info().key.as_ref(),
+            self.maker_mint.to_account_info().key.as_ref(),
+            &[self.listing.bump],
+        ];
+
+        let signer_seeds = &[&seeds[..]];
+
+        let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, signer_seeds);
+
+        close_account(cpi_ctx)?;
 
         Ok(())
     }
